@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
 
+# calcuate the liquadtion preference and conversion threshold
+# Derive the breakpoints from the calculation. return the result
+# in a dataframe
+
 
 def calculate_break_point(df_cap):
     df_cap['LQ'] = pd.DataFrame(
@@ -15,11 +19,15 @@ def calculate_break_point(df_cap):
         (df_cap["Shares Outstanding"]*df_cap['Conversion Rate'])
     return df_BPFT
 
+# make a sorted list of all threshold values, and return the list.
+
 
 def get_sorted_threshold_lists(df_cap):
     thresholds = list(df_cap[df_cap['Participating'] ==
                              False].Conversion_Threshold.sort_values())
     return thresholds
+
+# get the positions of the participating shares, return the result in a dataframe
 
 
 def get_participating_position(df_cap, thresholds):
@@ -30,6 +38,8 @@ def get_participating_position(df_cap, thresholds):
                         * threshold+part_tmp['LQ']).sum())
     part_pos = pd.DataFrame(part_lq, index=thresholds)
     return part_pos
+
+# get the positions of the non-participating shares, return the result in a dataframe
 
 
 def get_non_participating_position(df_cap, thresholds):
@@ -46,6 +56,8 @@ def get_non_participating_position(df_cap, thresholds):
     npart_pos = pd.DataFrame(npart_lq, index=thresholds)
     return npart_pos
 
+# get the positions of the common shares, return the result in a dataframe
+
 
 def get_common_share_position(df_cap, thresholds):
     cs = []
@@ -54,11 +66,16 @@ def get_common_share_position(df_cap, thresholds):
     cs_pos = pd.DataFrame(cs, index=thresholds)
     return cs_pos
 
+# combine the position of the participating, non-participating, and common shares,
+# and return the combined dataframe
+
 
 def combina_all_positions(part_pos, npart_pos, cs_pos):
     combined = pd.concat([part_pos, npart_pos, cs_pos], axis=1)
     df_bp = pd.DataFrame(combined.sum(axis=1))
     return df_bp
+
+# get all the break points, returrn the result in a dataframe
 
 
 def get_all_bpft(df_bpft, df_bp):
@@ -72,12 +89,17 @@ def get_all_bpft(df_bpft, df_bp):
     df_BP = df_BP.fillna(0)
     return df_BP
 
+# merge the breakpoints with the working cap_table
+
 
 def merge_breakpoints(df_BP, df_cap):
     del df_cap['BreakPoint From']
     del df_cap['BreakPoint To']
     df_concat = pd.concat([df_cap, df_BP], axis=1)
     return df_concat
+
+# aggregate all of the previous functions return the thresholds as
+# a list, and the cap table as a dataframe
 
 
 def aggregate_all_operations(df_cap):

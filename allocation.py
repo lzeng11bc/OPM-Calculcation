@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+# get the allocation from all the base cases with no thresholds set
+
 
 def get_base_allocation(df_cap):
     df_list_sum = []
@@ -15,12 +17,16 @@ def get_base_allocation(df_cap):
         allocation.append(values[i]/values[i].sum())
     df_cap['Allocation'] = pd.concat(allocation)
 
+# get the shares that must participat in allocation
+
 
 def get_must_used_shares(df_cap):
     df_ma = pd.concat([df_cap[df_cap["Participating"] == True],
                        df_cap[df_cap.Security == "Common Shares"]])
     shares_must = df_ma['Shares Outstanding'].sum()
     return shares_must
+
+# get a list of allocations and a list of threshold values
 
 
 def get_threshold_value_allocation(df_cap, shares_must, thresholds):
@@ -36,6 +42,8 @@ def get_threshold_value_allocation(df_cap, shares_must, thresholds):
             allocation.append(shares_must)
             threshold_values.append(0)
     return allocation, threshold_values
+
+# get a data frame of the allocations for each threshold values
 
 
 def get_allocation_df(df_cap, threshold_values, allocation):
@@ -61,6 +69,8 @@ def get_allocation_df(df_cap, threshold_values, allocation):
     df_alloc = pd.concat(df_list, axis=1)
     return df_alloc
 
+# concat the base allocation to the cap table
+
 
 def get_base_allocation_value(df_cap, incremental_value_list):
     df_allocation_lq = []
@@ -74,12 +84,16 @@ def get_base_allocation_value(df_cap, incremental_value_list):
     df_cap = pd.concat([df_cap, df_base_allocation], axis=1)
     return df_cap
 
+# set the index of the threshold allocation
+
 
 def df_allocation_index_setter(df_cap, df_alloc):
     df_ma = pd.concat([df_cap[df_cap["Participating"] == True],
                        df_cap[df_cap.Security == "Common Shares"]])
     df_np = df_cap[df_cap["Participating"] == False]
     df_alloc.index = df_ma.index.append(df_np[:-1].index)
+
+# get the threshold allocation
 
 
 def calculate_threshold_allocation(df_alloc, incremental_value_list, threshold_values):
@@ -90,6 +104,8 @@ def calculate_threshold_allocation(df_alloc, incremental_value_list, threshold_v
     df_tmp_alloc = pd.concat(df_tmp_th, axis=1)
     return df_tmp_alloc
 
+# find the fair value per share
+
 
 def calculate_fvps(df_tmp_alloc, df_cap, threshold_values):
     df_cap = pd.concat([df_cap, df_tmp_alloc], axis=1)
@@ -97,6 +113,8 @@ def calculate_fvps(df_tmp_alloc, df_cap, threshold_values):
         [df_cap, df_cap.iloc[:, -(len(threshold_values)+1):].sum(axis=1)], axis=1)
     df_cap['FVPS'] = df_cap.iloc[:, -1]/df_cap['Shares Outstanding']
     return df_cap
+
+# aggregate previous operations
 
 
 def aggregate_allocation_fvps(df_concat, thresholds, incremental_value_list):

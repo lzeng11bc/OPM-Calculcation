@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+# make a opm setting function to test various cases
+
 
 def opm_setter(equity_value, r_f_rate=1e-20, volitility=1e-15,
                divyield=0, time_to_liquidation=1e-12):
