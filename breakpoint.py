@@ -23,8 +23,11 @@ def calculate_break_point(df_cap):
 
 
 def get_sorted_threshold_lists(df_cap):
-    thresholds = list(df_cap[df_cap['Participating'] ==
-                             False].Conversion_Threshold.sort_values())
+    if(len(df_cap['Participating'] == False) != 0):
+        thresholds = list(df_cap[df_cap['Participating'] ==
+                                 False].Conversion_Threshold.sort_values())
+    else:
+        thresholds = []
     return thresholds
 
 # get the positions of the participating shares, return the result in a dataframe
@@ -32,11 +35,14 @@ def get_sorted_threshold_lists(df_cap):
 
 def get_participating_position(df_cap, thresholds):
     part_lq = []
-    part_tmp = df_cap[df_cap['Participating'] == True]
-    for threshold in thresholds:
-        part_lq.append((part_tmp['Shares Outstanding']
-                        * threshold+part_tmp['LQ']).sum())
-    part_pos = pd.DataFrame(part_lq, index=thresholds)
+    if len(df_cap['Participating'] == True) != 0:
+        part_tmp = df_cap[df_cap['Participating'] == True]
+        for threshold in thresholds:
+            part_lq.append((part_tmp['Shares Outstanding']
+                            * threshold+part_tmp['LQ']).sum())
+        part_pos = pd.DataFrame(part_lq, index=thresholds)
+    else:
+        part_pos = pd.DataFrame()
     return part_pos
 
 # get the positions of the non-participating shares, return the result in a dataframe
@@ -44,16 +50,22 @@ def get_participating_position(df_cap, thresholds):
 
 def get_non_participating_position(df_cap, thresholds):
     npart_lq = []
-    df_np_sort = df_cap[df_cap['Participating'] ==
-                        False].sort_values("Conversion_Threshold")
-    for threshold in thresholds:
-        df_tmp_ls = df_np_sort[df_np_sort['Conversion_Threshold'] < threshold]
-        df_tmp_gt = df_np_sort[df_np_sort['Conversion_Threshold'] >= threshold]
-        lq_sum = np.sum(df_tmp_ls['Shares Outstanding']
-                        * threshold*df_tmp_ls["Conversion Rate"])
-        lq_sum += df_tmp_gt['LQ'].sum()
-        npart_lq.append(lq_sum)
-    npart_pos = pd.DataFrame(npart_lq, index=thresholds)
+    if (len(df_cap['Participating'] == False) != 0):
+        df_np_sort = df_cap[df_cap['Participating'] ==
+                            False].sort_values("Conversion_Threshold")
+    else:
+        pass
+    if len(thresholds) != 0:
+        for threshold in thresholds:
+            df_tmp_ls = df_np_sort[df_np_sort['Conversion_Threshold'] < threshold]
+            df_tmp_gt = df_np_sort[df_np_sort['Conversion_Threshold'] >= threshold]
+            lq_sum = np.sum(df_tmp_ls['Shares Outstanding']
+                            * threshold*df_tmp_ls["Conversion Rate"])
+            lq_sum += df_tmp_gt['LQ'].sum()
+            npart_lq.append(lq_sum)
+        npart_pos = pd.DataFrame(npart_lq, index=thresholds)
+    else:
+        npart_pos = pd.DataFrame()
     return npart_pos
 
 # get the positions of the common shares, return the result in a dataframe
@@ -61,9 +73,13 @@ def get_non_participating_position(df_cap, thresholds):
 
 def get_common_share_position(df_cap, thresholds):
     cs = []
-    for threshold in thresholds:
-        cs.append(df_cap.iloc[len(df_cap)-1, ]["Shares Outstanding"]*threshold)
-    cs_pos = pd.DataFrame(cs, index=thresholds)
+    if len(thresholds) != 0:
+        for threshold in thresholds:
+            cs.append(df_cap.iloc[len(df_cap)-1, ]
+                      ["Shares Outstanding"]*threshold)
+        cs_pos = pd.DataFrame(cs, index=thresholds)
+    else:
+        cs_pos = pd.DataFrame()
     return cs_pos
 
 # combine the position of the participating, non-participating, and common shares,
@@ -71,7 +87,12 @@ def get_common_share_position(df_cap, thresholds):
 
 
 def combina_all_positions(part_pos, npart_pos, cs_pos):
-    combined = pd.concat([part_pos, npart_pos, cs_pos], axis=1)
+    if npart_pos.empty:
+        combined = pd.concat([part_pos, cs_pos], axis=1)
+    elif part_pos.empty:
+        combined = pd.concat([npart_pos, cs_pos], axis=1)
+    else:
+        combined = pd.concat([part_pos, npart_pos, cs_pos], axis=1)
     df_bp = pd.DataFrame(combined.sum(axis=1))
     return df_bp
 
@@ -109,8 +130,7 @@ def aggregate_all_operations(df_cap):
     df_part_pos = get_participating_position(df_tmp, thresholds)
     df_npart_pos = get_non_participating_position(df_tmp, thresholds)
     df_cs_pos = get_common_share_position(df_tmp, thresholds)
-
     df_bp = combina_all_positions(df_part_pos, df_npart_pos, df_cs_pos)
     df_BP = get_all_bpft(df_bpft, df_bp)
     df_concat = merge_breakpoints(df_BP, df_tmp)
-    return thresholds, df_concat
+    return thresholds, df_concat, df_concat['BreakPoint From']
